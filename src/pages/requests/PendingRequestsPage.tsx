@@ -25,11 +25,12 @@ const PendingRequestsPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Check if user is manager, redirect otherwise
-  if (!isRole('Manager')) {
-    navigate('/dashboard');
-    return null;
-  }
+  // Check if user is manager or admin, redirect otherwise
+  useEffect(() => {
+    if (!isRole('Manager') && !isRole('Admin')) {
+      navigate('/dashboard');
+    }
+  }, [isRole, navigate]);
 
   useEffect(() => {
     const fetchRequests = async () => {

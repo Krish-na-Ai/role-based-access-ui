@@ -72,8 +72,8 @@ const Sidebar = () => {
           </Link>
         )}
 
-        {/* Show pending requests for managers */}
-        {isRole('Manager') && (
+        {/* Show pending requests for managers and admins */}
+        {(isRole('Manager') || isRole('Admin')) && (
           <Link 
             to="/pending-requests" 
             className={cn("nav-link", isActive("/pending-requests") && "active")}

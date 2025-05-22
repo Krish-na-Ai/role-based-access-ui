@@ -1,4 +1,4 @@
-import { AccessRequest, Software, User } from '@/types';
+import { AccessRequest, Software, User, AccessLevel, RequestStatus, UserRole } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 
 // Auth APIs
