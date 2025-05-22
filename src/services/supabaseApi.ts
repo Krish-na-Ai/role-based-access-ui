@@ -1,4 +1,3 @@
-
 import { AccessRequest, Software, User } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -94,27 +93,41 @@ export const getSoftwareListFromSupabase = async (): Promise<Software[]> => {
   
   // Parse the accessLevels - handle both string formats and JSON
   return data.map((sw) => {
-    let accessLevels = [];
+    let accessLevels: AccessLevel[] = [];
     
     try {
       // Try to parse as JSON first
       if (sw.accessLevels) {
         if (typeof sw.accessLevels === 'string') {
           // Check if it's already a comma-separated string
-          if (sw.accessLevels.includes('Read,Write,Admin')) {
-            accessLevels = sw.accessLevels.split(',');
+          if (sw.accessLevels.includes(',')) {
+            // Explicitly cast each string to AccessLevel type
+            accessLevels = sw.accessLevels.split(',').filter((level): level is AccessLevel => {
+              return ['Read', 'Write', 'Admin'].includes(level);
+            });
           } else {
             // Try to parse as JSON
             try {
-              accessLevels = JSON.parse(sw.accessLevels);
+              const parsed = JSON.parse(sw.accessLevels);
+              if (Array.isArray(parsed)) {
+                accessLevels = parsed.filter((level): level is AccessLevel => {
+                  return ['Read', 'Write', 'Admin'].includes(level);
+                });
+              } else if (['Read', 'Write', 'Admin'].includes(parsed)) {
+                accessLevels = [parsed as AccessLevel];
+              }
             } catch {
-              // If JSON parsing fails, use as a single item
-              accessLevels = [sw.accessLevels];
+              // If JSON parsing fails and it's a valid AccessLevel, use as a single item
+              if (['Read', 'Write', 'Admin'].includes(sw.accessLevels)) {
+                accessLevels = [sw.accessLevels as AccessLevel];
+              }
             }
           }
         } else if (Array.isArray(sw.accessLevels)) {
-          // If it's already an array, use it directly
-          accessLevels = sw.accessLevels;
+          // If it's already an array, filter only valid AccessLevel values
+          accessLevels = sw.accessLevels.filter((level): level is AccessLevel => {
+            return ['Read', 'Write', 'Admin'].includes(level);
+          });
         }
       }
     } catch (e) {
@@ -152,9 +165,14 @@ export const createSoftwareInSupabase = async (software: Omit<Software, 'id'>): 
     throw new Error('Failed to create software');
   }
   
+  // Ensure we're returning the correct type
+  const accessLevels = accessLevelsString.split(',').filter((level): level is AccessLevel => {
+    return ['Read', 'Write', 'Admin'].includes(level);
+  });
+  
   return {
     ...data,
-    accessLevels: accessLevelsString.split(',')
+    accessLevels
   };
 };
 
@@ -199,21 +217,34 @@ export const createAccessRequestInSupabase = async (
     .single();
     
   // Parse software access levels
-  let accessLevels = [];
+  let accessLevels: AccessLevel[] = [];
   try {
     if (software?.accessLevels) {
       if (typeof software.accessLevels === 'string') {
         if (software.accessLevels.includes(',')) {
-          accessLevels = software.accessLevels.split(',');
+          accessLevels = software.accessLevels.split(',').filter((level): level is AccessLevel => {
+            return ['Read', 'Write', 'Admin'].includes(level);
+          });
         } else {
           try {
-            accessLevels = JSON.parse(software.accessLevels);
+            const parsed = JSON.parse(software.accessLevels);
+            if (Array.isArray(parsed)) {
+              accessLevels = parsed.filter((level): level is AccessLevel => {
+                return ['Read', 'Write', 'Admin'].includes(level);
+              });
+            } else if (['Read', 'Write', 'Admin'].includes(parsed)) {
+              accessLevels = [parsed as AccessLevel];
+            }
           } catch {
-            accessLevels = [software.accessLevels];
+            if (['Read', 'Write', 'Admin'].includes(software.accessLevels)) {
+              accessLevels = [software.accessLevels as AccessLevel];
+            }
           }
         }
       } else if (Array.isArray(software.accessLevels)) {
-        accessLevels = software.accessLevels;
+        accessLevels = software.accessLevels.filter((level): level is AccessLevel => {
+          return ['Read', 'Write', 'Admin'].includes(level);
+        });
       }
     }
   } catch (e) {
@@ -223,13 +254,13 @@ export const createAccessRequestInSupabase = async (
   
   return {
     id: data.id,
-    accessType: data.accessType as any,
+    accessType: data.accessType as AccessLevel,
     reason: data.reason,
-    status: data.status as any,
+    status: data.status as RequestStatus,
     user: {
       id: user?.id || 0,
       username: user?.username || '',
-      role: user?.role as any
+      role: user?.role as UserRole
     },
     software: {
       id: software?.id || 0,
@@ -275,21 +306,34 @@ export const getUserRequestsFromSupabase = async (userId: number): Promise<Acces
       .single();
       
     // Parse software access levels
-    let accessLevels = [];
+    let accessLevels: AccessLevel[] = [];
     try {
       if (software?.accessLevels) {
         if (typeof software.accessLevels === 'string') {
           if (software.accessLevels.includes(',')) {
-            accessLevels = software.accessLevels.split(',');
+            accessLevels = software.accessLevels.split(',').filter((level): level is AccessLevel => {
+              return ['Read', 'Write', 'Admin'].includes(level);
+            });
           } else {
             try {
-              accessLevels = JSON.parse(software.accessLevels);
+              const parsed = JSON.parse(software.accessLevels);
+              if (Array.isArray(parsed)) {
+                accessLevels = parsed.filter((level): level is AccessLevel => {
+                  return ['Read', 'Write', 'Admin'].includes(level);
+                });
+              } else if (['Read', 'Write', 'Admin'].includes(parsed)) {
+                accessLevels = [parsed as AccessLevel];
+              }
             } catch {
-              accessLevels = [software.accessLevels];
+              if (['Read', 'Write', 'Admin'].includes(software.accessLevels)) {
+                accessLevels = [software.accessLevels as AccessLevel];
+              }
             }
           }
         } else if (Array.isArray(software.accessLevels)) {
-          accessLevels = software.accessLevels;
+          accessLevels = software.accessLevels.filter((level): level is AccessLevel => {
+            return ['Read', 'Write', 'Admin'].includes(level);
+          });
         }
       }
     } catch (e) {
@@ -299,13 +343,13 @@ export const getUserRequestsFromSupabase = async (userId: number): Promise<Acces
     
     requests.push({
       id: request.id,
-      accessType: request.accessType as any,
+      accessType: request.accessType as AccessLevel,
       reason: request.reason,
-      status: request.status as any,
+      status: request.status as RequestStatus,
       user: {
         id: user?.id || 0,
         username: user?.username || '',
-        role: user?.role as any
+        role: user?.role as UserRole
       },
       software: {
         id: software?.id || 0,
@@ -354,21 +398,34 @@ export const getPendingRequestsFromSupabase = async (): Promise<AccessRequest[]>
       .single();
       
     // Parse software access levels
-    let accessLevels = [];
+    let accessLevels: AccessLevel[] = [];
     try {
       if (software?.accessLevels) {
         if (typeof software.accessLevels === 'string') {
           if (software.accessLevels.includes(',')) {
-            accessLevels = software.accessLevels.split(',');
+            accessLevels = software.accessLevels.split(',').filter((level): level is AccessLevel => {
+              return ['Read', 'Write', 'Admin'].includes(level);
+            });
           } else {
             try {
-              accessLevels = JSON.parse(software.accessLevels);
+              const parsed = JSON.parse(software.accessLevels);
+              if (Array.isArray(parsed)) {
+                accessLevels = parsed.filter((level): level is AccessLevel => {
+                  return ['Read', 'Write', 'Admin'].includes(level);
+                });
+              } else if (['Read', 'Write', 'Admin'].includes(parsed)) {
+                accessLevels = [parsed as AccessLevel];
+              }
             } catch {
-              accessLevels = [software.accessLevels];
+              if (['Read', 'Write', 'Admin'].includes(software.accessLevels)) {
+                accessLevels = [software.accessLevels as AccessLevel];
+              }
             }
           }
         } else if (Array.isArray(software.accessLevels)) {
-          accessLevels = software.accessLevels;
+          accessLevels = software.accessLevels.filter((level): level is AccessLevel => {
+            return ['Read', 'Write', 'Admin'].includes(level);
+          });
         }
       }
     } catch (e) {
@@ -378,13 +435,13 @@ export const getPendingRequestsFromSupabase = async (): Promise<AccessRequest[]>
     
     requests.push({
       id: request.id,
-      accessType: request.accessType as any,
+      accessType: request.accessType as AccessLevel,
       reason: request.reason,
-      status: request.status as any,
+      status: request.status as RequestStatus,
       user: {
         id: user?.id || 0,
         username: user?.username || '',
-        role: user?.role as any
+        role: user?.role as UserRole
       },
       software: {
         id: software?.id || 0,
@@ -435,21 +492,34 @@ export const updateRequestStatusInSupabase = async (
     .single();
     
   // Parse software access levels
-  let accessLevels = [];
+  let accessLevels: AccessLevel[] = [];
   try {
     if (software?.accessLevels) {
       if (typeof software.accessLevels === 'string') {
         if (software.accessLevels.includes(',')) {
-          accessLevels = software.accessLevels.split(',');
+          accessLevels = software.accessLevels.split(',').filter((level): level is AccessLevel => {
+            return ['Read', 'Write', 'Admin'].includes(level);
+          });
         } else {
           try {
-            accessLevels = JSON.parse(software.accessLevels);
+            const parsed = JSON.parse(software.accessLevels);
+            if (Array.isArray(parsed)) {
+              accessLevels = parsed.filter((level): level is AccessLevel => {
+                return ['Read', 'Write', 'Admin'].includes(level);
+              });
+            } else if (['Read', 'Write', 'Admin'].includes(parsed)) {
+              accessLevels = [parsed as AccessLevel];
+            }
           } catch {
-            accessLevels = [software.accessLevels];
+            if (['Read', 'Write', 'Admin'].includes(software.accessLevels)) {
+              accessLevels = [software.accessLevels as AccessLevel];
+            }
           }
         }
       } else if (Array.isArray(software.accessLevels)) {
-        accessLevels = software.accessLevels;
+        accessLevels = software.accessLevels.filter((level): level is AccessLevel => {
+          return ['Read', 'Write', 'Admin'].includes(level);
+        });
       }
     }
   } catch (e) {
@@ -459,13 +529,13 @@ export const updateRequestStatusInSupabase = async (
   
   return {
     id: data.id,
-    accessType: data.accessType as any,
+    accessType: data.accessType as AccessLevel,
     reason: data.reason,
-    status: data.status as any,
+    status: data.status as RequestStatus,
     user: {
       id: user?.id || 0,
       username: user?.username || '',
-      role: user?.role as any
+      role: user?.role as UserRole
     },
     software: {
       id: software?.id || 0,
