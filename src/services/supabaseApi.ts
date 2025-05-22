@@ -1,7 +1,6 @@
 
 import { AccessRequest, Software, User } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/components/ui/use-toast';
 
 // Auth APIs
 export const loginWithSupabase = async (username: string, password: string) => {
@@ -93,22 +92,56 @@ export const getSoftwareListFromSupabase = async (): Promise<Software[]> => {
     throw new Error('Failed to fetch software list');
   }
   
-  // Parse the accessLevels from string to array
-  return data.map((sw) => ({
-    ...sw,
-    accessLevels: sw.accessLevels ? JSON.parse(sw.accessLevels) : []
-  }));
+  // Parse the accessLevels - handle both string formats and JSON
+  return data.map((sw) => {
+    let accessLevels = [];
+    
+    try {
+      // Try to parse as JSON first
+      if (sw.accessLevels) {
+        if (typeof sw.accessLevels === 'string') {
+          // Check if it's already a comma-separated string
+          if (sw.accessLevels.includes('Read,Write,Admin')) {
+            accessLevels = sw.accessLevels.split(',');
+          } else {
+            // Try to parse as JSON
+            try {
+              accessLevels = JSON.parse(sw.accessLevels);
+            } catch {
+              // If JSON parsing fails, use as a single item
+              accessLevels = [sw.accessLevels];
+            }
+          }
+        } else if (Array.isArray(sw.accessLevels)) {
+          // If it's already an array, use it directly
+          accessLevels = sw.accessLevels;
+        }
+      }
+    } catch (e) {
+      console.error(`Failed to parse accessLevels for software ${sw.id}:`, e);
+      accessLevels = [];
+    }
+    
+    return {
+      ...sw,
+      accessLevels
+    };
+  });
 };
 
 export const createSoftwareInSupabase = async (software: Omit<Software, 'id'>): Promise<Software> => {
-  // Convert accessLevels array to string for storage
+  // For storage, we'll convert the array to a comma-separated string
+  const accessLevelsString = Array.isArray(software.accessLevels) 
+    ? software.accessLevels.join(',') 
+    : software.accessLevels;
+    
   const { data, error } = await supabase
     .from('software')
     .insert([
       { 
         name: software.name, 
         description: software.description, 
-        accessLevels: JSON.stringify(software.accessLevels)
+        accessLevels: accessLevelsString
       }
     ])
     .select()
@@ -121,7 +154,7 @@ export const createSoftwareInSupabase = async (software: Omit<Software, 'id'>): 
   
   return {
     ...data,
-    accessLevels: JSON.parse(data.accessLevels)
+    accessLevels: accessLevelsString.split(',')
   };
 };
 
@@ -164,6 +197,29 @@ export const createAccessRequestInSupabase = async (
     .select('*')
     .eq('id', data.softwareId)
     .single();
+    
+  // Parse software access levels
+  let accessLevels = [];
+  try {
+    if (software?.accessLevels) {
+      if (typeof software.accessLevels === 'string') {
+        if (software.accessLevels.includes(',')) {
+          accessLevels = software.accessLevels.split(',');
+        } else {
+          try {
+            accessLevels = JSON.parse(software.accessLevels);
+          } catch {
+            accessLevels = [software.accessLevels];
+          }
+        }
+      } else if (Array.isArray(software.accessLevels)) {
+        accessLevels = software.accessLevels;
+      }
+    }
+  } catch (e) {
+    console.error('Failed to parse accessLevels:', e);
+    accessLevels = [];
+  }
   
   return {
     id: data.id,
@@ -179,7 +235,7 @@ export const createAccessRequestInSupabase = async (
       id: software?.id || 0,
       name: software?.name || '',
       description: software?.description || '',
-      accessLevels: software?.accessLevels ? JSON.parse(software.accessLevels) : []
+      accessLevels
     }
   };
 };
@@ -217,6 +273,29 @@ export const getUserRequestsFromSupabase = async (userId: number): Promise<Acces
       .select('*')
       .eq('id', request.softwareId)
       .single();
+      
+    // Parse software access levels
+    let accessLevels = [];
+    try {
+      if (software?.accessLevels) {
+        if (typeof software.accessLevels === 'string') {
+          if (software.accessLevels.includes(',')) {
+            accessLevels = software.accessLevels.split(',');
+          } else {
+            try {
+              accessLevels = JSON.parse(software.accessLevels);
+            } catch {
+              accessLevels = [software.accessLevels];
+            }
+          }
+        } else if (Array.isArray(software.accessLevels)) {
+          accessLevels = software.accessLevels;
+        }
+      }
+    } catch (e) {
+      console.error('Failed to parse accessLevels:', e);
+      accessLevels = [];
+    }
     
     requests.push({
       id: request.id,
@@ -232,7 +311,7 @@ export const getUserRequestsFromSupabase = async (userId: number): Promise<Acces
         id: software?.id || 0,
         name: software?.name || '',
         description: software?.description || '',
-        accessLevels: software?.accessLevels ? JSON.parse(software.accessLevels) : []
+        accessLevels
       }
     });
   }
@@ -273,6 +352,29 @@ export const getPendingRequestsFromSupabase = async (): Promise<AccessRequest[]>
       .select('*')
       .eq('id', request.softwareId)
       .single();
+      
+    // Parse software access levels
+    let accessLevels = [];
+    try {
+      if (software?.accessLevels) {
+        if (typeof software.accessLevels === 'string') {
+          if (software.accessLevels.includes(',')) {
+            accessLevels = software.accessLevels.split(',');
+          } else {
+            try {
+              accessLevels = JSON.parse(software.accessLevels);
+            } catch {
+              accessLevels = [software.accessLevels];
+            }
+          }
+        } else if (Array.isArray(software.accessLevels)) {
+          accessLevels = software.accessLevels;
+        }
+      }
+    } catch (e) {
+      console.error('Failed to parse accessLevels:', e);
+      accessLevels = [];
+    }
     
     requests.push({
       id: request.id,
@@ -288,7 +390,7 @@ export const getPendingRequestsFromSupabase = async (): Promise<AccessRequest[]>
         id: software?.id || 0,
         name: software?.name || '',
         description: software?.description || '',
-        accessLevels: software?.accessLevels ? JSON.parse(software.accessLevels) : []
+        accessLevels
       }
     });
   }
@@ -331,6 +433,29 @@ export const updateRequestStatusInSupabase = async (
     .select('*')
     .eq('id', data.softwareId)
     .single();
+    
+  // Parse software access levels
+  let accessLevels = [];
+  try {
+    if (software?.accessLevels) {
+      if (typeof software.accessLevels === 'string') {
+        if (software.accessLevels.includes(',')) {
+          accessLevels = software.accessLevels.split(',');
+        } else {
+          try {
+            accessLevels = JSON.parse(software.accessLevels);
+          } catch {
+            accessLevels = [software.accessLevels];
+          }
+        }
+      } else if (Array.isArray(software.accessLevels)) {
+        accessLevels = software.accessLevels;
+      }
+    }
+  } catch (e) {
+    console.error('Failed to parse accessLevels:', e);
+    accessLevels = [];
+  }
   
   return {
     id: data.id,
@@ -346,7 +471,7 @@ export const updateRequestStatusInSupabase = async (
       id: software?.id || 0,
       name: software?.name || '',
       description: software?.description || '',
-      accessLevels: software?.accessLevels ? JSON.parse(software.accessLevels) : []
+      accessLevels
     }
   };
 };

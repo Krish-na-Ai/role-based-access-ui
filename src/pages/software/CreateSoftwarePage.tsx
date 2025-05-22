@@ -110,29 +110,33 @@ const CreateSoftwarePage = () => {
             <CardTitle>New Software Information</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-6" id="create-software-form" name="create-software-form">
               <div className="space-y-2">
-                <Label htmlFor="name">Software Name</Label>
+                <Label htmlFor="software-name">Software Name</Label>
                 <Input
-                  id="name"
+                  id="software-name"
+                  name="software-name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Enter software name"
                   disabled={isSubmitting}
                   required
+                  autoComplete="off"
                 />
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
+                <Label htmlFor="software-description">Description</Label>
                 <Textarea
-                  id="description"
+                  id="software-description"
+                  name="software-description"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Enter software description"
                   className="min-h-32"
                   disabled={isSubmitting}
                   required
+                  autoComplete="off"
                 />
               </div>
               
@@ -143,6 +147,7 @@ const CreateSoftwarePage = () => {
                     <div key={level.value} className="flex items-center space-x-2">
                       <Checkbox
                         id={`level-${level.value}`}
+                        name={`level-${level.value}`}
                         checked={selectedLevels.includes(level.value)}
                         onCheckedChange={() => handleCheckboxChange(level.value)}
                         disabled={isSubmitting}
@@ -164,10 +169,17 @@ const CreateSoftwarePage = () => {
                   variant="outline"
                   onClick={() => navigate('/software')}
                   disabled={isSubmitting}
+                  id="cancel-button"
+                  name="cancel-button"
                 >
                   Cancel
                 </Button>
-                <Button type="submit" disabled={isSubmitting}>
+                <Button 
+                  type="submit" 
+                  disabled={isSubmitting}
+                  id="submit-button"
+                  name="submit-button"
+                >
                   {isSubmitting ? "Creating..." : "Create Software"}
                 </Button>
               </div>

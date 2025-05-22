@@ -101,29 +101,33 @@ const SignupForm = () => {
         <CardDescription>Create an account to get started</CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4" id="signup-form" name="signup-form">
           <div className="space-y-2">
             <Label htmlFor="username">Username</Label>
             <Input
               id="username"
+              name="username"
               type="text"
               placeholder="Create a username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
               disabled={isLoading}
+              autoComplete="username"
             />
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
             <Input
               id="password"
+              name="password"
               type="password"
               placeholder="Create a password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
               disabled={isLoading}
+              autoComplete="new-password"
             />
           </div>
           <Button type="submit" className="w-full" disabled={isLoading}>
@@ -140,6 +144,8 @@ const SignupForm = () => {
               size="sm" 
               onClick={() => handleQuickSignup('Employee')}
               disabled={isLoading}
+              id="employee-demo"
+              name="employee-demo"
             >
               Employee
             </Button>
@@ -148,6 +154,8 @@ const SignupForm = () => {
               size="sm" 
               onClick={() => handleQuickSignup('Manager')}
               disabled={isLoading}
+              id="manager-demo"
+              name="manager-demo"
             >
               Manager
             </Button>
@@ -156,6 +164,8 @@ const SignupForm = () => {
               size="sm" 
               onClick={() => handleQuickSignup('Admin')}
               disabled={isLoading}
+              id="admin-demo"
+              name="admin-demo"
             >
               Admin
             </Button>
