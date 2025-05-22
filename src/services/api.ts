@@ -1,70 +1,32 @@
 
 import { AccessRequest, Software, User } from '@/types';
-
-const API_URL = 'http://localhost:8000/api';
-
-const getHeaders = () => {
-  const token = localStorage.getItem('token');
-  return {
-    'Content-Type': 'application/json',
-    Authorization: token ? `Bearer ${token}` : '',
-  };
-};
+import { 
+  loginWithSupabase, 
+  signupWithSupabase,
+  getSoftwareListFromSupabase,
+  createSoftwareInSupabase,
+  createAccessRequestInSupabase,
+  getUserRequestsFromSupabase,
+  getPendingRequestsFromSupabase,
+  updateRequestStatusInSupabase
+} from './supabaseApi';
 
 // Auth APIs
 export const login = async (username: string, password: string) => {
-  const response = await fetch(`${API_URL}/auth/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password }),
-  });
-  
-  if (!response.ok) {
-    throw new Error('Login failed');
-  }
-  
-  return response.json();
+  return loginWithSupabase(username, password);
 };
 
 export const signup = async (username: string, password: string) => {
-  const response = await fetch(`${API_URL}/auth/signup`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password }),
-  });
-  
-  if (!response.ok) {
-    throw new Error('Signup failed');
-  }
-  
-  return response.json();
+  return signupWithSupabase(username, password);
 };
 
 // Software APIs
 export const getSoftwareList = async (): Promise<Software[]> => {
-  const response = await fetch(`${API_URL}/software`, {
-    headers: getHeaders(),
-  });
-  
-  if (!response.ok) {
-    throw new Error('Failed to fetch software list');
-  }
-  
-  return response.json();
+  return getSoftwareListFromSupabase();
 };
 
 export const createSoftware = async (software: Omit<Software, 'id'>): Promise<Software> => {
-  const response = await fetch(`${API_URL}/software`, {
-    method: 'POST',
-    headers: getHeaders(),
-    body: JSON.stringify(software),
-  });
-  
-  if (!response.ok) {
-    throw new Error('Failed to create software');
-  }
-  
-  return response.json();
+  return createSoftwareInSupabase(software);
 };
 
 // Request APIs
@@ -73,56 +35,34 @@ export const createAccessRequest = async (
   accessType: string,
   reason: string
 ): Promise<AccessRequest> => {
-  const response = await fetch(`${API_URL}/requests`, {
-    method: 'POST',
-    headers: getHeaders(),
-    body: JSON.stringify({ softwareId, accessType, reason }),
-  });
-  
-  if (!response.ok) {
-    throw new Error('Failed to create access request');
+  // Get the current user ID from localStorage
+  const userStr = localStorage.getItem('user');
+  if (!userStr) {
+    throw new Error('User not logged in');
   }
   
-  return response.json();
+  const user = JSON.parse(userStr);
+  return createAccessRequestInSupabase(user.id, softwareId, accessType, reason);
 };
 
 export const getUserRequests = async (): Promise<AccessRequest[]> => {
-  const response = await fetch(`${API_URL}/requests/user`, {
-    headers: getHeaders(),
-  });
-  
-  if (!response.ok) {
-    throw new Error('Failed to fetch user requests');
+  // Get the current user ID from localStorage
+  const userStr = localStorage.getItem('user');
+  if (!userStr) {
+    throw new Error('User not logged in');
   }
   
-  return response.json();
+  const user = JSON.parse(userStr);
+  return getUserRequestsFromSupabase(user.id);
 };
 
 export const getPendingRequests = async (): Promise<AccessRequest[]> => {
-  const response = await fetch(`${API_URL}/requests/pending`, {
-    headers: getHeaders(),
-  });
-  
-  if (!response.ok) {
-    throw new Error('Failed to fetch pending requests');
-  }
-  
-  return response.json();
+  return getPendingRequestsFromSupabase();
 };
 
 export const updateRequestStatus = async (
   requestId: number,
   status: 'Approved' | 'Rejected'
 ): Promise<AccessRequest> => {
-  const response = await fetch(`${API_URL}/requests/${requestId}`, {
-    method: 'PATCH',
-    headers: getHeaders(),
-    body: JSON.stringify({ status }),
-  });
-  
-  if (!response.ok) {
-    throw new Error(`Failed to ${status.toLowerCase()} request`);
-  }
-  
-  return response.json();
+  return updateRequestStatusInSupabase(requestId, status);
 };

@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { getUserRequests, getSoftwareList } from '@/services/api';
@@ -7,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { UserRole } from '@/types';
+import { Package, Settings, Users } from 'lucide-react';
 
 const DashboardPage = () => {
   const [userRequests, setUserRequests] = useState<AccessRequest[]>([]);

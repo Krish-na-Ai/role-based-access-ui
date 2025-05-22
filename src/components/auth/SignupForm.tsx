@@ -6,13 +6,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
-import { signup, login } from '@/services/api';
+import { signup } from '@/services/api';
 import { useToast } from '@/components/ui/use-toast';
 
 const SignupForm = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { login: authLogin } = useAuth();
   const navigate = useNavigate();
@@ -21,10 +20,10 @@ const SignupForm = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (password !== confirmPassword) {
+    if (!username || !password) {
       toast({
-        title: "Passwords don't match",
-        description: "Please ensure both passwords match.",
+        title: "Missing fields",
+        description: "Please fill in all fields",
         variant: "destructive",
       });
       return;
@@ -32,25 +31,62 @@ const SignupForm = () => {
     
     try {
       setIsLoading(true);
-      // Register the user
-      await signup(username, password);
-      
-      // Log the user in after successful registration
-      const loginResponse = await login(username, password);
-      authLogin(loginResponse.token, loginResponse.user);
-      
+      const response = await signup(username, password);
+      authLogin(response.token, response.user);
       toast({
-        title: "Signup successful!",
-        description: "Your account has been created.",
+        title: "Account created!",
+        description: "Your account has been created successfully.",
       });
-      
-      // Redirect to dashboard
       navigate('/dashboard');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Signup error:', error);
       toast({
         title: "Signup failed",
-        description: "There was a problem creating your account. Please try again.",
+        description: error.message || "Failed to create account. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // For demo purposes, let's add some quick login buttons
+  const handleQuickSignup = async (role: 'Employee' | 'Manager' | 'Admin') => {
+    const username = `${role.toLowerCase()}_${Date.now().toString().slice(-4)}`;
+    const password = 'password123';
+    
+    setUsername(username);
+    setPassword(password);
+    
+    try {
+      setIsLoading(true);
+      const response = await signup(username, password);
+      // If it's a manager or admin, we need to update the role directly in the database
+      // This would normally be handled by an admin interface, but for demo purposes:
+      if (role !== 'Employee') {
+        // Update the user's role in Supabase
+        const { data, error } = await window.supabase
+          .from('users')
+          .update({ role })
+          .eq('id', response.user.id);
+        
+        if (!error) {
+          // Update the local user object
+          response.user.role = role;
+        }
+      }
+      
+      authLogin(response.token, response.user);
+      toast({
+        title: "Demo account created!",
+        description: `Created ${role} account: ${username}`,
+      });
+      navigate('/dashboard');
+    } catch (error: any) {
+      console.error('Quick signup error:', error);
+      toast({
+        title: "Signup failed",
+        description: error.message || "Failed to create demo account.",
         variant: "destructive",
       });
     } finally {
@@ -62,7 +98,7 @@ const SignupForm = () => {
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
         <CardTitle className="text-2xl">Sign Up</CardTitle>
-        <CardDescription>Create a new account to access the system</CardDescription>
+        <CardDescription>Create an account to get started</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -71,7 +107,7 @@ const SignupForm = () => {
             <Input
               id="username"
               type="text"
-              placeholder="Enter your username"
+              placeholder="Create a username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
@@ -90,22 +126,44 @@ const SignupForm = () => {
               disabled={isLoading}
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="confirmPassword">Confirm Password</Label>
-            <Input
-              id="confirmPassword"
-              type="password"
-              placeholder="Confirm your password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-              disabled={isLoading}
-            />
-          </div>
           <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? "Creating account..." : "Sign Up"}
+            {isLoading ? "Creating Account..." : "Sign Up"}
           </Button>
         </form>
+        
+        {/* Quick demo accounts section */}
+        <div className="mt-6 pt-6 border-t">
+          <p className="text-sm text-center font-medium mb-4">Demo Accounts (Quick Create)</p>
+          <div className="grid grid-cols-3 gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => handleQuickSignup('Employee')}
+              disabled={isLoading}
+            >
+              Employee
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => handleQuickSignup('Manager')}
+              disabled={isLoading}
+            >
+              Manager
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => handleQuickSignup('Admin')}
+              disabled={isLoading}
+            >
+              Admin
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground mt-2 text-center">
+            Creates test accounts with different roles
+          </p>
+        </div>
       </CardContent>
       <CardFooter className="flex justify-center">
         <p className="text-sm text-muted-foreground">
